@@ -52,3 +52,13 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# database (SQLite, di-generate dari db:push + seed)
+db/*.db
+db/*.db-journal
+
+# worklog (internal)
+worklog.md
+
+# tool-results temp
+tool-results/
