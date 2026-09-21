@@ -169,3 +169,41 @@ Stage Summary:
 - Akar masalah: Radix ScrollArea + Dialog focus trap memblokir keyboard scroll native.
 - Solusi: native div `overflow-y-auto` + `tabIndex={0}` + auto-focus saat sheet open.
 - Native browser scroll otomatis mendukung semua keyboard shortcut tanpa handler tambahan.
+
+---
+Task ID: 6
+Agent: main (Z.ai Code)
+Task: Perbaiki grafik profil angin multilapis — arah angin tidak jelas kemana.
+
+Work Log:
+- Diagnosa masalah lama:
+  * Panah terlalu kecil (arrowLen=14px) — sulit dilihat
+  * Posisi panah = x berdasarkan kecepatan, sehingga tiap level panah di posisi x berbeda, membingungkan
+  * Label hanya derajat numerik "→ 50°" tanpa nama kompas — user tidak tahu 50° itu arah mana
+  * Tidak ada kompas rose acuan — user tidak tahu utara di mana
+  * Marker kecepatan (titik di posisi x=speed) konflik dengan panah arah
+- Redesign WindProfile.tsx dengan layout 4 kolom yang jelas:
+  1. **Kolom TEKANAN** (hPa) — angka besar + label satuan
+  2. **Kolom KETINGGIAN** — m ASL + m AGL
+  3. **Kolom PANAH ARAH** — lingkaran kompas (r=32px) dengan panah BESAR (shaft + kepala) di tengah, tick U/T/S/B di tepi lingkaran, label arah kompas 16-arah di bawah
+  4. **Kolom KECEPATAN** — bar horizontal dengan warna berbasis kecepatan + angka m/s
+- Tambah helper `compass16(deg)` — singkatan 16 arah (U, U·TL, TL, TL·T, T, ...) untuk presisi
+- Tambah helper `levelColor()` dan `speedColor()` untuk konsistensi warna
+- Tambah kompas rose acuan di header (lingkaran dengan panah merah utara + label U/T/S/B) untuk orientasi
+- Setiap baris level: zebra background untuk readability, garis pemisah
+- Label arah ganda: nama lengkap (Utara/Timur Laut/dll) + singkatan 16-arah + derajat
+- Penjelasan "Cara baca" eksplisit: "Panah = arah GERAK udara (menuju). Panah ke kanan = Timur."
+- Tambah legenda kecepatan (lemah→sangat kuat) dengan warna bar
+- Verifikasi via agent-browser + VLM:
+  * VLM konfirmasi: panah besar & jelas di lingkaran kompas, label U/T/S/B terlihat, kompas rose acuan ada
+  * VLM berhasil identifikasi semua 4 level dengan arah:
+    - 600 hPa → Timur Laut (~45°), panah hijau
+    - 500 hPa → Timur Laut (~41°), panah hijau
+    - 400 hPa → Timur (~91°), panah ungu
+    - 300 hPa → Timur (~75°), panah ungu
+  * Arah konsisten dengan data VONA Semeru ("gerak: northeast/timur laut")
+  * Lint lulus, no console errors
+
+Stage Summary:
+- Profil angin multilapis sekarang jauh lebih jelas: panah besar di tengah lingkaran kompas per level, label arah lengkap (Utara/Timur Laut/dll + singkatan + derajat), kompas rose acuan, kecepatan dengan bar warna.
+- User dapat langsung melihat arah angin kemana di setiap level atmosfer.
