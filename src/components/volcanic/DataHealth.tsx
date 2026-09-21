@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -8,7 +8,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -43,6 +42,18 @@ export function DataHealth({
   loading: boolean
 }) {
   const summary = data?.summary
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Fokuskan scroll container saat sheet terbuka & data selesai dimuat.
+  useEffect(() => {
+    if (open && !loading && summary) {
+      const t = setTimeout(() => {
+        scrollRef.current?.focus({ preventScroll: true })
+      }, 120)
+      return () => clearTimeout(t)
+    }
+  }, [open, loading, summary])
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-full sm:max-w-md lg:max-w-lg p-0 flex flex-col bg-background">
@@ -62,7 +73,13 @@ export function DataHealth({
             Memeriksa konektor...
           </div>
         ) : summary && data ? (
-          <ScrollArea className="flex-1 scroll-volcanic">
+          <div
+            ref={scrollRef}
+            role="region"
+            aria-label="Konten kesehatan sumber"
+            tabIndex={0}
+            className="scroll-volcanic flex-1 overflow-y-auto outline-none focus-visible:ring-1 focus-visible:ring-ring/40"
+          >
             <div className="p-4 space-y-4">
               {/* Summary cards */}
               <div className="grid grid-cols-3 gap-2">
@@ -151,7 +168,7 @@ export function DataHealth({
                 <p>Alert kosong pada feed sah (mis. VAAC nihil advisory) BUKAN indikasi konektor gagal. Fetch gagal BUKAN berarti tidak ada kejadian.</p>
               </div>
             </div>
-          </ScrollArea>
+          </div>
         ) : (
           <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
             Gagal memuat kesehatan sumber.

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -9,7 +9,6 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import {
   X,
@@ -132,6 +131,22 @@ export function EventDetail({
   listItem,
   windProfile,
 }: EventDetailProps) {
+  // Ref ke scroll container — native div agar PageUp/PageDown/Home/End/Space bekerja.
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Fokuskan scroll container saat sheet terbuka & detail selesai dimuat.
+  // Native scrollable element dengan tabindex=0 akan menerima keyboard navigation
+  // (PageUp/PageDown/Space/Home/End/Arrow keys) tanpa handler tambahan.
+  useEffect(() => {
+    if (open && !loading && detail) {
+      // Delay sedikit agar animasi slide-in selesai sebelum fokus
+      const t = setTimeout(() => {
+        scrollRef.current?.focus({ preventScroll: true })
+      }, 120)
+      return () => clearTimeout(t)
+    }
+  }, [open, loading, detail])
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -165,7 +180,13 @@ export function EventDetail({
             Memuat detail kejadian...
           </div>
         ) : detail ? (
-          <ScrollArea className="flex-1 scroll-volcanic">
+          <div
+            ref={scrollRef}
+            role="region"
+            aria-label="Konten detail kejadian"
+            tabIndex={0}
+            className="scroll-volcanic flex-1 overflow-y-auto outline-none focus-visible:ring-1 focus-visible:ring-ring/40"
+          >
             <div className="space-y-5 p-4">
               {/* Ringkasan */}
               <section className="rounded-lg border border-border bg-card/60 p-3">
@@ -422,7 +443,7 @@ export function EventDetail({
                 ))}
               </section>
             </div>
-          </ScrollArea>
+          </div>
         ) : (
           <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
             Tidak ada data.

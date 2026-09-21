@@ -135,3 +135,37 @@ Stage Summary:
 - Satu toggle di legend mengaktifkan grid panah nasional; 6 tombol level hPa untuk ganti pressure level.
 - Panah = MultiLineString 3 segmen (shaft + kepala) per cell, warna berbasis kecepatan.
 - Desktop & mobile terverifikasi via VLM.
+
+---
+Task ID: 5
+Agent: main (Z.ai Code)
+Task: Perbaiki PageUp/PageDown tidak bekerja di window detail.
+
+Work Log:
+- Diagnosa: komponen `ScrollArea` Radix UI memblokir keyboard scroll (PageUp/PageDown/Space/Home/End) karena:
+  * Viewport Radix pakai `overflow: hidden` + custom scrollbar (bukan native scrollable)
+  * Radix Dialog men-trap focus ke tombol Close, bukan ke scroll container
+  * Browser keyboard scroll hanya bekerja pada native scrollable element yang punya focus
+- Solusi: ganti `<ScrollArea>` Radix dengan `<div>` native `overflow-y-auto` + `tabIndex={0}` + `role="region"`, dan fokuskan container saat sheet terbuka.
+- EventDetail.tsx:
+  * Hapus import `ScrollArea`
+  * Tambah `useRef<HTMLDivElement>` + `useEffect` untuk auto-focus scroll container (delay 120ms setelah open)
+  * Ganti `<ScrollArea className="flex-1 scroll-volcanic">` → `<div ref={scrollRef} role="region" aria-label="Konten detail kejadian" tabIndex={0} className="scroll-volcanic flex-1 overflow-y-auto outline-none focus-visible:ring-1 focus-visible:ring-ring/40">`
+  * Tutup `</ScrollArea>` → `</div>`
+- DataHealth.tsx: sama — ganti ScrollArea → div native + ref + useEffect auto-focus.
+- Verifikasi via agent-browser:
+  * EventDetail: scrollHeight 3409 > clientHeight 486 (konten panjang). Setelah klik Semeru: activeElement = "Konten detail kejadian" (auto-focus bekerja, tabIndex=0).
+  * PageDown: scrollTop 0 → 425 (satu layar)
+  * PageUp: scrollTop 425 → 0
+  * End: → 2923 (paling bawah)
+  * Home: → 0 (paling atas)
+  * ArrowDown ×3: → 120 (scroll halus per baris)
+  * Space: → 545 (satu layar, sama seperti PageDown)
+  * DataHealth: scrollHeight 2031 > 470. PageDown → 411, PageUp → 0.
+  * Lint lulus, no console errors.
+
+Stage Summary:
+- PageUp/PageDown/Home/End/Space/Arrow keys sekarang semua bekerja di window detail (EventDetail) dan panel Kesehatan Sumber (DataHealth).
+- Akar masalah: Radix ScrollArea + Dialog focus trap memblokir keyboard scroll native.
+- Solusi: native div `overflow-y-auto` + `tabIndex={0}` + auto-focus saat sheet open.
+- Native browser scroll otomatis mendukung semua keyboard shortcut tanpa handler tambahan.
