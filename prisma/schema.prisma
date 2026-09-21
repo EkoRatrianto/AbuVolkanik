@@ -1,0 +1,189 @@
+// Prisma schema — Aplikasi Pemantauan Abu Vulkanik Indonesia
+// Adaptasi dari skema PostGIS dokumen rancangan ke SQLite + Prisma.
+// Geometri disimpan sebagai GeoJSON string; koordinat sebagai Float.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Registry sumber data resmi (PVMBG, BMKG, VAAC, NOAA, Open-Meteo, NASA GIBS)
+model SourceRegistry {
+  id                  String    @id @default(cuid())
+  sourceId            String    @unique
+  owner               String
+  docsUrl             String
+  endpoint            String?
+  format              String
+  license             String
+  rateLimit           String?
+  expectedCadence     String
+  legalStatus         String    @default("pending") // pending | approved | rejected
+  connectivityStatus  String    @default("unverified") // ok | stale | failed | unverified
+  attribution         String
+  purpose             String
+  lastVerifiedAt      DateTime?
+  lastFetchedAt       DateTime?
+  notes               String?
+  ingestLogs          IngestLog[]
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+// Gunung api Indonesia
+model Volcano {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  officialName  String
+  aliases       String?
+  lat           Float
+  lng           Float
+  summitMAsl    Int
+  province      String
+  region        String
+  aviationColor String   @default("YELLOW") // GREEN | YELLOW | ORANGE | RED
+  krStatus      String   @default("Level II") // KRB status
+  createdAt     DateTime @default(now())
+  events        EruptionEvent[]
+}
+
+// Kejadian erupsi / episode vulkanik
+model EruptionEvent {
+  id             String    @id @default(cuid())
+  volcanoId      String
+  volcano        Volcano   @relation(fields: [volcanoId], references: [id])
+  onsetAt        DateTime
+  endAt          DateTime?
+  status         String    @default("officially_monitored")
+  // officially_monitored | atmospheric_ash_observed | potentially_crossed | confirmed_surface_impact
+  aviationColor   String    @default("ORANGE")
+  summary        String
+  createdAt      DateTime  @default(now())
+  documents      SourceDocument[]
+  observations   AshObservation[]
+  modelRuns      ModelRun[]
+}
+
+// Dokumen sumber (VONA, VAA, CAP, laporan observasi)
+model SourceDocument {
+  id            String   @id @default(cuid())
+  eventId       String
+  event         EruptionEvent @relation(fields: [eventId], references: [id])
+  type          String   // VONA | VAA | CAP | OBS_GROUND | OBS_SAT | REPORT
+  evidenceType  String   // OBS-VOLCANO | ADV-AIRSPACE | OBS-GROUND | OBS-SAT
+  externalId    String?
+  issuedAt      DateTime
+  validFrom     DateTime
+  validTo       DateTime?
+  url           String
+  revision      Int      @default(1)
+  supersedesId  String?
+  rawSummary    String
+  receivedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+}
+
+// Observasi abu (atmosfer / permukaan)
+model AshObservation {
+  id              String   @id @default(cuid())
+  eventId         String
+  event           EruptionEvent @relation(fields: [eventId], references: [id])
+  evidenceType    String   // OBS-VOLCANO | ADV-AIRSPACE | OBS-GROUND | OBS-SAT | MODEL-TRAJ | MODEL-DISP
+  ashTopMAsl      Int?
+  ashTopOriginal  String?
+  ashTopUnit      String?  // m | ft
+  ashAboveSummitM Int?
+  movementToDeg   Float?
+  movementFromDeg Float?
+  movementText    String?
+  method          String
+  confidence      String   @default("medium") // low | medium | high
+  observedAt      DateTime
+  polygonGeoJson  String?
+  conflict        String?
+  createdAt       DateTime @default(now())
+}
+
+// Run model dispersi (HYSPLIT unit-source untuk demo)
+model ModelRun {
+  id            String    @id @default(cuid())
+  eventId       String
+  event         EruptionEvent @relation(fields: [eventId], references: [id])
+  modelVersion  String
+  configHash    String
+  metProvider   String    @default("GFS 0.25°")
+  metCycleAt    DateTime
+  startedAt     DateTime
+  finishedAt    DateTime?
+  status        String    @default("passed") // running | passed | failed
+  assumptions   String    // JSON string
+  isUnitSource   Boolean   @default(true)
+  footprints    AshFootprint[]
+  createdAt     DateTime  @default(now())
+}
+
+// Footprint model (polygon probabilistik)
+model AshFootprint {
+  id            String   @id @default(cuid())
+  modelRunId    String
+  modelRun      ModelRun @relation(fields: [modelRunId], references: [id])
+  validFrom     DateTime
+  validTo       DateTime
+  verticalBand  String   // e.g., "SFC-FL050" | "FL050-FL100"
+  polygonGeoJson String  // GeoJSON polygon
+  metric        String   // relative_footprint_probability | fraction_of_scenarios
+  value         Float    // 0-1
+  nMembers      Int
+  nIntersect    Int
+  createdAt     DateTime @default(now())
+  exposures     AdminExposure[]
+}
+
+// Wilayah administratif (kabupaten/kota)
+model AdminUnit {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  level           String   // adm2 | adm3 | adm4
+  name            String
+  province        String
+  lat             Float
+  lng             Float
+  boundaryVersion String
+  createdAt       DateTime @default(now())
+  exposures       AdminExposure[]
+}
+
+// Paparan wilayah terhadap footprint
+model AdminExposure {
+  id              String   @id @default(cuid())
+  footprintId     String
+  footprint       AshFootprint @relation(fields: [footprintId], references: [id])
+  adminId         String
+  adminUnit       AdminUnit @relation(fields: [adminId], references: [id])
+  overlapAreaKm2  Float
+  ratio           Float    // 0-1
+  populationProxy Float?
+  methodVersion   String   @default("uniform-proxy-v1")
+  isConfirmed     Boolean  @default(false) // true hanya bila ada konfirmasi permukaan
+  createdAt       DateTime @default(now())
+}
+
+// Log ingest konektor
+model IngestLog {
+  id           String   @id @default(cuid())
+  sourceId     String   // reference ke SourceRegistry.sourceId
+  source       SourceRegistry @relation(fields: [sourceId], references: [sourceId])
+  runId        String
+  connector    String
+  fetchedAt    DateTime @default(now())
+  httpStatus   Int?
+  latencyMs    Int?
+  counts       Int      @default(0)
+  errorClass   String?
+  retryAt      DateTime?
+  createdAt    DateTime @default(now())
+}
