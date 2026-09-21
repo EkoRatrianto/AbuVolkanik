@@ -66,20 +66,43 @@ export async function GET(request: Request) {
         },
         evidenceCount: e.observations.length + e.documents.length,
         hasModelRun: e.modelRuns.length > 0,
-        latestObservation: e.observations[0]
-          ? {
-              ashTopMAsl: e.observations[0].ashTopMAsl,
-              movementText: e.observations[0].movementText,
-              method: e.observations[0].method,
-              observedAt: e.observations[0].observedAt,
-              confidence: e.observations[0].confidence,
-              hasConflict: !!e.observations[0].conflict,
-            }
-          : null,
+        latestObservation: pickLatestObservation(e.observations),
       })),
     })
   } catch (e) {
     console.error('GET /api/events error', e)
     return NextResponse.json({ error: 'Gagal memuat daftar kejadian' }, { status: 500 })
+  }
+}
+
+// Prioritaskan notice resmi vulkanologi (OBS-VOLCANO / OBS-GROUND / OBS-SAT)
+// di atas advisory penerbangan (ADV-AIRSPACE) saat memilih "latest observation"
+// untuk ringkasan daftar — agar kolom abu yang ditampilkan merepresentasikan
+// observasi vulkanologi resmi, bukan polygon VAAC atmosfer per flight level.
+function pickLatestObservation(obs: Array<{
+  evidenceType: string
+  ashTopMAsl: number | null
+  movementText: string | null
+  method: string
+  observedAt: Date
+  confidence: string
+  conflict: string | null
+}>) {
+  if (!obs || obs.length === 0) return null
+  const priority = ['OBS-VOLCANO', 'OBS-GROUND', 'OBS-SAT', 'ADV-AIRSPACE', 'MODEL-TRAJ', 'MODEL-DISP', 'REPORT-UNVERIFIED', 'FCST-MET']
+  const sorted = [...obs].sort((a, b) => {
+    const pa = priority.indexOf(a.evidenceType)
+    const pb = priority.indexOf(b.evidenceType)
+    if (pa !== pb) return pa - pb
+    return b.observedAt.getTime() - a.observedAt.getTime()
+  })
+  const o = sorted[0]
+  return {
+    ashTopMAsl: o.ashTopMAsl,
+    movementText: o.movementText,
+    method: o.method,
+    observedAt: o.observedAt,
+    confidence: o.confidence,
+    hasConflict: !!o.conflict,
   }
 }

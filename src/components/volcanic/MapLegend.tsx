@@ -1,21 +1,25 @@
 'use client'
 
-import { Mountain, CloudRain, Wind, Route, Hexagon, CircleDashed } from 'lucide-react'
+import { Mountain, CloudRain, Wind, Route, Hexagon, CircleDashed, Cloud } from 'lucide-react'
 
 export function MapLegend({
   showModelLayer,
   showWindLayer,
   showPrecipLayer,
+  showVaacLayer,
   onToggleModel,
   onToggleWind,
   onTogglePrecip,
+  onToggleVaac,
 }: {
   showModelLayer: boolean
   showWindLayer: boolean
   showPrecipLayer: boolean
+  showVaacLayer: boolean
   onToggleModel: () => void
   onToggleWind: () => void
   onTogglePrecip: () => void
+  onToggleVaac: () => void
 }) {
   return (
     <div className="rounded-lg border border-border bg-card/95 backdrop-blur shadow-lg overflow-hidden">
@@ -37,6 +41,13 @@ export function MapLegend({
         </div>
 
         <div className="h-px bg-border" />
+
+        <LegendToggle active={showVaacLayer} onClick={onToggleVaac} icon={<Cloud className="h-3.5 w-3.5 text-fuchsia-400" />}>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-3 w-4 border border-fuchsia-400 bg-fuchsia-400/15" />
+            VAAC advisory abu atmosfer (multi FL)
+          </span>
+        </LegendToggle>
 
         <LegendToggle active={showModelLayer} onClick={onToggleModel} icon={<Hexagon className="h-3.5 w-3.5 text-orange-400" />}>
           <span className="inline-flex items-center gap-1.5">

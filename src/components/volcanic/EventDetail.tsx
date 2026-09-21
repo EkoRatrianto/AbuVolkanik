@@ -24,6 +24,7 @@ import {
   CircleDashed,
   Eye,
   Users,
+  Cloud,
 } from 'lucide-react'
 import type { EventListItem, AviationColor } from './types'
 import { AVIATION_COLOR_META, STATUS_LABELS, EVIDENCE_TYPE_META } from './types'
@@ -95,6 +96,16 @@ export interface EventDetailData {
   }>
   footprints: any[]
   trajectories: any[]
+  vaacPolygons?: Array<{
+    evidenceType: string
+    flightLevel: string
+    ashTopMAsl: number | null
+    movementToDeg: number | null
+    movementText: string | null
+    confidence: string
+    observedAt: string
+    geometry: any
+  }>
   potentialAreas: any[]
   confirmedAreas: any[]
   messages: {
@@ -227,6 +238,44 @@ export function EventDetail({
                       </div>
                     )
                   })}
+                </section>
+              )}
+
+              {/* VAAC advisory atmosfer multi-flight-level */}
+              {detail.vaacPolygons && detail.vaacPolygons.length > 0 && (
+                <section className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Cloud className="h-3.5 w-3.5 text-fuchsia-400" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">VAAC Advisory — Abu Atmosfer Multi-Lapis</h3>
+                  </div>
+                  <div className="rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/5 p-2.5">
+                    <p className="text-[10px] text-fuchsia-200/80 mb-2 italic">
+                      Advisory VAAC = abu di <strong>ruang udara</strong>, BUKAN jatuhan permukaan.
+                      Polygon berlapis per flight level (ICAO FL) sesuai arah gerak angin pada lapisan atmosfer tersebut.
+                    </p>
+                    <div className="space-y-1.5">
+                      {detail.vaacPolygons.map((v, i) => (
+                        <div key={i} className="rounded border border-fuchsia-500/25 bg-fuchsia-500/5 px-2 py-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-[10px] border-fuchsia-500/40 text-fuchsia-300">{v.flightLevel}</Badge>
+                            {v.ashTopMAsl != null && (
+                              <span className="text-[10px] text-muted-foreground">~{v.ashTopMAsl.toLocaleString('id-ID')} m ASL</span>
+                            )}
+                            {v.movementText && (
+                              <span className="text-[10px] text-foreground/90">gerak: {v.movementText}</span>
+                            )}
+                            <span className="ml-auto text-[9px] text-muted-foreground font-mono">
+                              {new Date(v.observedAt).toISOString().replace('T', ' ').slice(0, 16)}Z
+                            </span>
+                          </div>
+                          <div className="text-[9px] text-muted-foreground mt-0.5">metode: VAAC satellite + model guidance · konfidens: {v.confidence}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[9px] text-fuchsia-200/70 mt-2 italic">
+                      Keputusan penerbangan rujuk VAAC Darwin / AirNav Indonesia resmi. Produk ini hanya fusi bukti.
+                    </p>
+                  </div>
                 </section>
               )}
 

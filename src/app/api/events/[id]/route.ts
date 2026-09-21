@@ -114,6 +114,20 @@ export async function GET(
     const polygons = footprints.filter((f) => f.geometry.type === 'Polygon')
     const trajectories = footprints.filter((f) => f.geometry.type === 'LineString')
 
+    // VAAC advisory polygons (atmosfer, multi flight-level) — dari observations ADV-AIRSPACE
+    const vaacPolygons = event.observations
+      .filter((o) => o.evidenceType === 'ADV-AIRSPACE' && o.polygonGeoJson)
+      .map((o) => ({
+        evidenceType: o.evidenceType,
+        flightLevel: o.ashTopOriginal ?? 'unknown',
+        ashTopMAsl: o.ashTopMAsl,
+        movementToDeg: o.movementToDeg,
+        movementText: o.movementText,
+        confidence: o.confidence,
+        observedAt: o.observedAt,
+        geometry: JSON.parse(o.polygonGeoJson!),
+      }))
+
     // Exposure = wilayah berpotensi terlintasi (BUKAN konfirmasi)
     const allExposures = footprints.flatMap((f) =>
       f.exposures.map((ex) => ({ ...ex, metric: f.metric, validFrom: f.validFrom, validTo: f.validTo }))
@@ -158,6 +172,7 @@ export async function GET(
       })),
       footprints: polygons,
       trajectories,
+      vaacPolygons,
       potentialAreas,
       confirmedAreas,
       // Pesan kunci

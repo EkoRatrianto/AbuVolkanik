@@ -279,6 +279,89 @@ async function main() {
     },
   })
 
+  // VAAC Darwin advisory source document + multi-flight-level ash polygons.
+  // Catatan §3.1: VAAC advisory = abu di ruang udara, BUKAN otomatis jatuhan permukaan.
+  // Polygon dilapis-lapis berdasarkan flight level (ICAO FL): FL050-FL100, FL100-FL150, FL150-FL200.
+  const vaacIssuedAt = new Date('2026-09-20T23:30:00Z')
+  await db.sourceDocument.create({
+    data: {
+      eventId: event.id,
+      type: 'VAA',
+      evidenceType: 'ADV-AIRSPACE',
+      externalId: 'VAAC-DARWIN-20260920-2330Z',
+      issuedAt: vaacIssuedAt,
+      validFrom: vaacIssuedAt,
+      validTo: new Date('2026-09-21T05:30:00Z'),
+      url: 'https://www.bom.gov.au/aviation/volcanic-ash/darwin-va-advisory.shtml',
+      revision: 1,
+      rawSummary:
+        'Darwin VAAC Volcanic Ash Advisory (VAA) untuk Semeru. Abu atmosfer teramati/diprakirakan pada polygon multi-lapis flight level, bergerak timur laut sesuai VONA. Advisory ini menggambarkan abu di ruang udara, BUKAN jatuhan permukaan. Produk industri penerbangan — keputusan penerbangan rujuk VAAC/AirNav resmi.',
+    },
+  })
+
+  // FL050–FL100 (~1.5–3 km): polygon paling dekat sumber, area sempit
+  await db.ashObservation.create({
+    data: {
+      eventId: event.id,
+      evidenceType: 'ADV-AIRSPACE',
+      ashTopMAsl: 3000,
+      ashTopOriginal: 'FL100',
+      ashTopUnit: 'flight level',
+      movementToDeg: 45,
+      movementFromDeg: 225,
+      movementText: 'timur laut (VAAC advisory, atmosfer)',
+      method: 'VAAC satellite + model guidance',
+      confidence: 'medium',
+      observedAt: vaacIssuedAt,
+      polygonGeoJson: JSON.stringify({
+        type: 'Polygon',
+        coordinates: [makeEllipse(113.2, -7.85, 1.1, 0.55, 28)],
+      }),
+    },
+  })
+
+  // FL100–FL150 (~3–4.5 km): polygon lebih luas, mengikuti arah gerak
+  await db.ashObservation.create({
+    data: {
+      eventId: event.id,
+      evidenceType: 'ADV-AIRSPACE',
+      ashTopMAsl: 4500,
+      ashTopOriginal: 'FL150',
+      ashTopUnit: 'flight level',
+      movementToDeg: 50,
+      movementFromDeg: 230,
+      movementText: 'timur laut (VAAC advisory, atmosfer)',
+      method: 'VAAC satellite + model guidance',
+      confidence: 'medium',
+      observedAt: vaacIssuedAt,
+      polygonGeoJson: JSON.stringify({
+        type: 'Polygon',
+        coordinates: [makeEllipse(113.9, -7.5, 1.8, 0.85, 30)],
+      }),
+    },
+  })
+
+  // FL150–FL200 (~4.5–6 km): polygon paling luas, terbawa angin tinggi
+  await db.ashObservation.create({
+    data: {
+      eventId: event.id,
+      evidenceType: 'ADV-AIRSPACE',
+      ashTopMAsl: 6000,
+      ashTopOriginal: 'FL200',
+      ashTopUnit: 'flight level',
+      movementToDeg: 55,
+      movementFromDeg: 235,
+      movementText: 'timur laut–timur (VAAC advisory, atmosfer tinggi)',
+      method: 'VAAC satellite + model guidance',
+      confidence: 'low',
+      observedAt: vaacIssuedAt,
+      polygonGeoJson: JSON.stringify({
+        type: 'Polygon',
+        coordinates: [makeEllipse(114.7, -7.2, 2.4, 1.1, 32)],
+      }),
+    },
+  })
+
   // Profil angin multilapis disimpan sebagai footprint trajectory
   const metCycleAt = new Date('2026-09-20T18:00:00Z')
   const modelRun = await db.modelRun.create({

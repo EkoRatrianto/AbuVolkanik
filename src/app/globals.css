@@ -154,3 +154,32 @@
 .dash-flow {
   animation: dash-flow 1.2s linear infinite;
 }
+
+/* MapLibre marker pulse */
+@keyframes vpulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.08); }
+}
+
+/* MapLibre popup styling override (dark) */
+.maplibregl-popup-content {
+  background: rgba(15, 20, 24, 0.95) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(8px);
+}
+.maplibregl-popup-tip {
+  border-top-color: rgba(15, 20, 24, 0.95) !important;
+  border-bottom-color: rgba(15, 20, 24, 0.95) !important;
+}
+.maplibregl-ctrl-attrib {
+  background: rgba(15, 20, 24, 0.7) !important;
+  color: #94a3b8 !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: #cbd5e1 !important;
+}
+.maplibregl-ctrl-attrib-button {
+  background-color: rgba(148, 163, 184, 0.3) !important;
+}

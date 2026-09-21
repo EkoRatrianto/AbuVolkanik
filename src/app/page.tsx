@@ -5,13 +5,14 @@ import { useQuery } from '@tanstack/react-query'
 import { Header } from '@/components/volcanic/Header'
 import { DisclaimerBanner } from '@/components/volcanic/DisclaimerBanner'
 import { EventList } from '@/components/volcanic/EventList'
-import { MapView } from '@/components/volcanic/MapView'
+import { MapLibreView } from '@/components/volcanic/MapLibreView'
 import { MapLegend } from '@/components/volcanic/MapLegend'
 import { EventDetail, type EventDetailData } from '@/components/volcanic/EventDetail'
 import { DataHealth } from '@/components/volcanic/DataHealth'
+import { WindWeatherMap } from '@/components/volcanic/WindWeatherMap'
 import { Footer } from '@/components/volcanic/Footer'
 import { Button } from '@/components/ui/button'
-import { Activity, RefreshCw, Maximize2 } from 'lucide-react'
+import { Activity, RefreshCw, Maximize2, Wind } from 'lucide-react'
 import type { EventListItem, AviationColor, WindProfileData } from '@/components/volcanic/types'
 
 export default function Home() {
@@ -23,6 +24,8 @@ export default function Home() {
   const [showModelLayer, setShowModelLayer] = useState(true)
   const [showWindLayer, setShowWindLayer] = useState(true)
   const [showPrecipLayer, setShowPrecipLayer] = useState(false)
+  const [showVaacLayer, setShowVaacLayer] = useState(true)
+  const [weatherOpen, setWeatherOpen] = useState(false)
 
   // Fetch volcanoes
   const { data: volcanoesData } = useQuery({
@@ -120,6 +123,14 @@ export default function Home() {
       validTo: t.validTo,
       verticalBand: t.verticalBand,
     }))
+    const vaacPolygons = (selectedDetail as any).vaacPolygons?.map((v: any) => ({
+      geometry: v.geometry,
+      flightLevel: v.flightLevel,
+      ashTopMAsl: v.ashTopMAsl,
+      movementText: v.movementText,
+      confidence: v.confidence,
+      observedAt: v.observedAt,
+    })) ?? []
     const adminAreas = selectedDetail.potentialAreas.concat(selectedDetail.confirmedAreas).map((a) => ({
       name: a.adminUnit.name,
       lat: a.adminUnit.lat,
@@ -131,6 +142,7 @@ export default function Home() {
     return {
       polygons,
       trajectories,
+      vaacPolygons,
       adminAreas,
       windLevels,
       volcanoLat: selectedDetail.event.volcano.lat,
@@ -160,6 +172,14 @@ export default function Home() {
               <Activity className="h-3.5 w-3.5 mr-1" /> Kesehatan Sumber
             </Button>
             <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setWeatherOpen(true)}
+            >
+              <Wind className="h-3.5 w-3.5 mr-1" /> Angin & Cuaca
+            </Button>
+            <Button
               variant="ghost"
               size="sm"
               className="h-7 text-xs ml-auto"
@@ -185,7 +205,7 @@ export default function Home() {
 
         {/* Map area */}
         <section className="relative flex-1 min-h-[420px] lg:min-h-0 bg-[#0f1418]">
-          <MapView
+          <MapLibreView
             volcanoes={volcanoes}
             events={events}
             selectedEventId={selectedEventId}
@@ -194,6 +214,7 @@ export default function Home() {
             showModelLayer={showModelLayer}
             showWindLayer={showWindLayer}
             showPrecipLayer={showPrecipLayer}
+            showVaacLayer={showVaacLayer}
           />
 
           {/* Legend overlay */}
@@ -202,9 +223,11 @@ export default function Home() {
               showModelLayer={showModelLayer}
               showWindLayer={showWindLayer}
               showPrecipLayer={showPrecipLayer}
+              showVaacLayer={showVaacLayer}
               onToggleModel={() => setShowModelLayer((v) => !v)}
               onToggleWind={() => setShowWindLayer((v) => !v)}
               onTogglePrecip={() => setShowPrecipLayer((v) => !v)}
+              onToggleVaac={() => setShowVaacLayer((v) => !v)}
             />
           </div>
 
@@ -270,6 +293,8 @@ export default function Home() {
         data={healthData}
         loading={healthLoading}
       />
+
+      <WindWeatherMap open={weatherOpen} onOpenChange={setWeatherOpen} />
 
       <Footer />
     </div>
