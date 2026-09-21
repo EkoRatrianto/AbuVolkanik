@@ -9,10 +9,9 @@ import { MapLibreView } from '@/components/volcanic/MapLibreView'
 import { MapLegend } from '@/components/volcanic/MapLegend'
 import { EventDetail, type EventDetailData } from '@/components/volcanic/EventDetail'
 import { DataHealth } from '@/components/volcanic/DataHealth'
-import { WindWeatherMap } from '@/components/volcanic/WindWeatherMap'
 import { Footer } from '@/components/volcanic/Footer'
 import { Button } from '@/components/ui/button'
-import { Activity, RefreshCw, Maximize2, Wind } from 'lucide-react'
+import { Activity, RefreshCw, Maximize2 } from 'lucide-react'
 import type { EventListItem, AviationColor, WindProfileData } from '@/components/volcanic/types'
 
 export default function Home() {
@@ -25,7 +24,8 @@ export default function Home() {
   const [showWindLayer, setShowWindLayer] = useState(true)
   const [showPrecipLayer, setShowPrecipLayer] = useState(false)
   const [showVaacLayer, setShowVaacLayer] = useState(true)
-  const [weatherOpen, setWeatherOpen] = useState(false)
+  const [showWindGrid, setShowWindGrid] = useState(true)
+  const [windGridLevel, setWindGridLevel] = useState(850)
 
   // Fetch volcanoes
   const { data: volcanoesData } = useQuery({
@@ -89,9 +89,21 @@ export default function Home() {
     staleTime: 30 * 1000,
   })
 
+  // Fetch wind field grid untuk overlay panah angin di peta (default 850 hPa)
+  const { data: windFieldData } = useQuery({
+    queryKey: ['wind-field', windGridLevel],
+    queryFn: async () => {
+      const r = await fetch(`/api/wind-field?level=${windGridLevel}`)
+      if (!r.ok) throw new Error('wind-field failed')
+      return r.json()
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
   // Derived: detail & wind profile langsung dari query data (bukan state copy)
   const selectedDetail = detailData ?? null
   const windProfile = windData ?? null
+  const windFieldCells = windFieldData?.cells ?? []
 
   const handleSelectEvent = useCallback((id: string) => {
     setSelectedEventId(id)
@@ -172,14 +184,6 @@ export default function Home() {
               <Activity className="h-3.5 w-3.5 mr-1" /> Kesehatan Sumber
             </Button>
             <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setWeatherOpen(true)}
-            >
-              <Wind className="h-3.5 w-3.5 mr-1" /> Angin & Cuaca
-            </Button>
-            <Button
               variant="ghost"
               size="sm"
               className="h-7 text-xs ml-auto"
@@ -215,19 +219,25 @@ export default function Home() {
             showWindLayer={showWindLayer}
             showPrecipLayer={showPrecipLayer}
             showVaacLayer={showVaacLayer}
+            showWindGrid={showWindGrid}
+            windFieldCells={windFieldCells}
           />
 
           {/* Legend overlay */}
-          <div className="absolute right-3 top-3 w-56 max-w-[calc(100%-1.5rem)]">
+          <div className="absolute right-3 top-3 w-60 max-w-[calc(100%-1.5rem)]">
             <MapLegend
               showModelLayer={showModelLayer}
               showWindLayer={showWindLayer}
               showPrecipLayer={showPrecipLayer}
               showVaacLayer={showVaacLayer}
+              showWindGrid={showWindGrid}
+              windGridLevel={windGridLevel}
               onToggleModel={() => setShowModelLayer((v) => !v)}
               onToggleWind={() => setShowWindLayer((v) => !v)}
               onTogglePrecip={() => setShowPrecipLayer((v) => !v)}
               onToggleVaac={() => setShowVaacLayer((v) => !v)}
+              onToggleWindGrid={() => setShowWindGrid((v) => !v)}
+              onChangeWindGridLevel={setWindGridLevel}
             />
           </div>
 
@@ -293,8 +303,6 @@ export default function Home() {
         data={healthData}
         loading={healthLoading}
       />
-
-      <WindWeatherMap open={weatherOpen} onOpenChange={setWeatherOpen} />
 
       <Footer />
     </div>

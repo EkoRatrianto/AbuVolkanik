@@ -109,3 +109,29 @@ Stage Summary:
 - Container absolute inset-0 langsung di section relative, dengan CSS force height 100%.
 - Semua layer (VAAC, footprint, trajectory, wind, markers) terlihat di desktop & mobile.
 - Footer sticky di desktop, ter-push natural di mobile. Lint lulus, no console errors.
+
+---
+Task ID: 4
+Agent: main (Z.ai Code)
+Task: Sederhanakan arah angin — ganti panel SVG terpisah dengan overlay panah sederhana di atas peta.
+
+Work Log:
+- Hapus komponen WindWeatherMap.tsx (panel Sheet bottom 90vh dengan SVG grid 22×12 kompleks).
+- Tambah helper `makeArrowFeature(cell)` di MapLibreView: setiap cell jadi 1 Feature MultiLineString dengan 3 segmen (shaft A→B + 2 sisi kepala C→B, D→B). Arah gerak = windFrom+180. Warna berbasis kecepatan: <4 abu, <8 amber, <14 oranye, ≥14 merah.
+- Tambah prop `showWindGrid` + `windFieldCells` ke MapLibreView. Layer `wind-grid-arrows` (line, data-driven color via `['get','color']`) dirender di atas peta tanpa perlu event terpilih.
+- Update page.tsx: hapus import WindWeatherMap + tombol "Angin & Cuaca" di sidebar + state weatherOpen. Tambah state `showWindGrid` (default true) + `windGridLevel` (default 850). Fetch /api/wind-field?level=langsung (always-on, staleTime 5 menit). Pass cells ke MapLibreView + props ke MapLegend.
+- Update MapLegend: tambah toggle "Panah arah angin (grid nasional)" dengan icon Navigation + preview arrow SVG. Saat ON, tampilkan selector 6 level compact (1000/925/850/700/500/300 hPa). Ganti label toggle angin lama jadi "Profil angin multilapis (event)" agar tidak overlap dengan grid.
+- Verifikasi via agent-browser + VLM:
+  * Layer `wind-grid-arrows` ter-add di load awal (sebelum klik event)
+  * VLM konfirmasi: panah kecil tersebar di peta (terlihat di area laut), overlay di atas satelit
+  * Selector level berfungsi: klik 500 → API call wind-field?level=500, label "Level: 500 hPa"
+  * Toggle ON/OFF berfungsi: layer hilang saat OFF
+  * Mobile 390x844: mapH=420, wind-grid-arrows ada, footer ter-push natural (body 1120 > viewport 844)
+  * Lint lulus, no console errors
+
+Stage Summary:
+- Arah angin sekarang sederhana: hanya gambar panah overlay di atas peta satelit, dengan toggle + selector level di legend.
+- Hapus panel WindWeatherMap kompleks (SVG grid 22×12 + 2 legend terpisah).
+- Satu toggle di legend mengaktifkan grid panah nasional; 6 tombol level hPa untuk ganti pressure level.
+- Panah = MultiLineString 3 segmen (shaft + kepala) per cell, warna berbasis kecepatan.
+- Desktop & mobile terverifikasi via VLM.

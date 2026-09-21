@@ -39,6 +39,14 @@ interface MapLibreViewProps {
   showWindLayer: boolean
   showPrecipLayer: boolean
   showVaacLayer: boolean
+  showWindGrid: boolean
+  windFieldCells?: Array<{
+    lng: number
+    lat: number
+    windFromDeg: number
+    speedMs: number
+    precipMm: number
+  }>
 }
 
 const COLOR_HEX: Record<AviationColor, string> = {
@@ -46,6 +54,63 @@ const COLOR_HEX: Record<AviationColor, string> = {
   YELLOW: '#fcd34d',
   ORANGE: '#fb923c',
   RED: '#f87171',
+}
+
+// Warna panah berbasis kecepatan (m/s): lemah → kuat
+function speedColor(speed: number): string {
+  if (speed < 4) return '#94a3b8' // abu-abu — lemah
+  if (speed < 8) return '#fbbf24' // amber — sedang
+  if (speed < 14) return '#fb923c' // oranye — kuat
+  return '#f87171' // merah — sangat kuat
+}
+
+// Buat satu Feature MultiLineString berbentuk panah dari satu cell grid angin.
+// Panah = shaft (A→B) + 2 sisi kepala (C→B, D→B).
+// arah gerak = windFrom + 180 (meteorologis: "dari" + 180 = "menuju").
+function makeArrowFeature(cell: {
+  lng: number
+  lat: number
+  windFromDeg: number
+  speedMs: number
+}): GeoJSON.Feature {
+  const moveToDeg = (cell.windFromDeg + 180) % 360
+  const rad = (moveToDeg * Math.PI) / 180
+  // Panjang shaft dalam derajat lng/lat (skala sesuai grid)
+  const len = 0.6 + cell.speedMs * 0.12
+  const headLen = len * 0.38
+  const headAngle = (25 * Math.PI) / 180
+
+  // A = ekor (titik awal)
+  const ax = cell.lng
+  const ay = cell.lat
+  // B = ujung (tip)
+  const bx = ax + Math.sin(rad) * len
+  const by = ay + Math.cos(rad) * len
+  // C, D = dua sisi kepala panah (mundur ±25° dari arah gerak)
+  const leftRad = rad + Math.PI - headAngle
+  const rightRad = rad + Math.PI + headAngle
+  const cx = bx + Math.sin(leftRad) * headLen
+  const cy = by + Math.cos(leftRad) * headLen
+  const dx = bx + Math.sin(rightRad) * headLen
+  const dy = by + Math.cos(rightRad) * headLen
+
+  return {
+    type: 'Feature',
+    geometry: {
+      type: 'MultiLineString',
+      coordinates: [
+        [[ax, ay], [bx, by]], // shaft
+        [[cx, cy], [bx, by]], // sisi kepala kiri
+        [[dx, dy], [bx, by]], // sisi kepala kanan
+      ],
+    },
+    properties: {
+      color: speedColor(cell.speedMs),
+      speed: cell.speedMs,
+      windFromDeg: cell.windFromDeg,
+      moveToDeg,
+    },
+  }
 }
 
 // Hatching pattern untuk footprint model (orange arsir)
@@ -80,6 +145,8 @@ export function MapLibreView({
   showWindLayer,
   showPrecipLayer,
   showVaacLayer,
+  showWindGrid,
+  windFieldCells,
 }: MapLibreViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MaplibreMapType | null>(null)
@@ -253,6 +320,7 @@ export function MapLibreView({
       'admin-circles',
       'admin-labels',
       'wind-arrows',
+      'wind-grid-arrows',
       'precip-circles',
     ]
     const sourcesToRemove = [
@@ -263,6 +331,7 @@ export function MapLibreView({
       'vaac-src-2',
       'admin-src',
       'wind-src',
+      'wind-grid-src',
       'precip-src',
     ]
     for (const l of layersToRemove) {
@@ -270,6 +339,26 @@ export function MapLibreView({
     }
     for (const s of sourcesToRemove) {
       if (map.getSource(s)) map.removeSource(s)
+    }
+
+    // --- Wind grid arrows overlay (sederhana: panah di setiap cell grid) ---
+    // Ditampilkan di atas peta tanpa perlu event terpilih.
+    if (showWindGrid && windFieldCells && windFieldCells.length > 0) {
+      const features = windFieldCells.map((c) => makeArrowFeature(c))
+      map.addSource('wind-grid-src', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features } as any,
+      })
+      map.addLayer({
+        id: 'wind-grid-arrows',
+        type: 'line',
+        source: 'wind-grid-src',
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 1.4,
+          'line-opacity': 0.85,
+        },
+      })
     }
 
     if (!selectedGeometry) return
@@ -478,7 +567,7 @@ export function MapLibreView({
         },
       })
     }
-  }, [selectedGeometry, showModelLayer, showWindLayer, showPrecipLayer, showVaacLayer, mapReady])
+  }, [selectedGeometry, showModelLayer, showWindLayer, showPrecipLayer, showVaacLayer, showWindGrid, windFieldCells, mapReady])
 
   return (
     <>
