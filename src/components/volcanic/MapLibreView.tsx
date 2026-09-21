@@ -20,6 +20,7 @@ interface MapLibreViewProps {
     lat: number
     lng: number
     summitMAsl: number
+    province: string
     aviationColor: AviationColor
     eventCount: number
   }>
@@ -31,7 +32,7 @@ interface MapLibreViewProps {
     trajectories: Array<{ geometry: any; verticalBand: string }>
     vaacPolygons: Array<{ geometry: any; flightLevel: string; ashTopMAsl: number | null; movementText: string | null; confidence: string; observedAt: string }>
     adminAreas: Array<{ name: string; lat: number; lng: number; ratio: number; isConfirmed: boolean }>
-    windLevels: Array<{ pressureHpa: number; zMAsl: number; windFromDeg: number; speedMs: number; moveToDeg: number }>
+    windLevels: Array<{ pressureHpa: number; zMAsl: number; windFromDeg: number; speedMs: number; moveToDeg: number; precipMm: number }>
     volcanoLat?: number
     volcanoLng?: number
   } | null
@@ -287,16 +288,18 @@ export function MapLibreView({
         closeOnClick: false,
         offset: 14,
         className: 'vp-popup',
-      }).setHTML(
-        `<div style="font-family:var(--font-geist-sans,system-ui);font-size:11px;line-height:1.4;">
-          <div style="font-weight:600;color:${color};font-size:11px;">${v.name}</div>
-          <div style="color:#94a3b8;font-size:10px;">${v.code} · ${v.province}</div>
-          <div style="color:#cbd5e1;font-size:10px;margin-top:2px;">Puncak: ${v.summitMAsl.toLocaleString('id-ID')} m ASL · ${v.aviationColor}</div>
-          <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${v.eventCount > 0 ? `<span style="color:#fb923c;">${v.eventCount} kejadian aktif</span>` : 'Tidak ada kejadian aktif'}</div>
-        </div>`
-      )
-      el.addEventListener('mouseenter', () => marker.setPopup(popup).addPopup(popup))
-      el.addEventListener('mouseleave', () => marker.removePopup())
+      })
+        .setLngLat([v.lng, v.lat])
+        .setHTML(
+          `<div style="font-family:var(--font-geist-sans,system-ui);font-size:11px;line-height:1.4;">
+            <div style="font-weight:600;color:${color};font-size:11px;">${v.name}</div>
+            <div style="color:#94a3b8;font-size:10px;">${v.code} · ${v.province}</div>
+            <div style="color:#cbd5e1;font-size:10px;margin-top:2px;">Puncak: ${v.summitMAsl.toLocaleString('id-ID')} m ASL · ${v.aviationColor}</div>
+            <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${v.eventCount > 0 ? `<span style="color:#fb923c;">${v.eventCount} kejadian aktif</span>` : 'Tidak ada kejadian aktif'}</div>
+          </div>`
+        )
+      el.addEventListener('mouseenter', () => popup.addTo(map))
+      el.addEventListener('mouseleave', () => popup.remove())
 
       markersRef.current.set(v.id, marker)
     }

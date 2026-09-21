@@ -29,7 +29,15 @@ export async function GET(request: Request) {
 
     const levelMeta = getLevelMeta(useLevel)
 
-    const cells = []
+    const cells: Array<{
+      lng: number
+      lat: number
+      windFromDeg: number
+      speedMs: number
+      precipMm: number
+      cloudCover: number
+      isConvective: boolean
+    }> = []
     for (let j = 0; j < rows; j++) {
       for (let i = 0; i < cols; i++) {
         const lng = minLng + i * stepLng
