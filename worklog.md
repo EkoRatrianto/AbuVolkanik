@@ -81,3 +81,31 @@ Stage Summary:
 - Data VAAC Darwin multi-flight-level (FL050-FL200) menggambarkan sebaran abu atmosfer per lapisan, sesuai arah angin pada level atmosfer tersebut.
 - Peta arah angin & cuaca nasional dengan 6 pressure level, grid 22×12, pola sirkulasi realistis (trade wind/monsoon/jet stream/ITCZ).
 - Semua peningkatan terverifikasi visual via VLM dan interaktif via agent-browser.
+
+---
+Task ID: 3
+Agent: main (Z.ai Code)
+Task: Perbaiki peta tidak terlihat untuk user.
+
+Work Log:
+- Diagnosa masalah via agent-browser: `.maplibregl-map` container collapse ke height 0 meski parent (section) punya tinggi 527px. `h-full` wrapper mengevaluasi ke 0 karena parent flex-derived height tidak "definite" untuk persentase CSS.
+- Masalah kedua: tile OSM (a.tile.openstreetmap.org) tidak mengirim CORS header, mungkin diblokir di jaringan user. CartoDB dark_all menampilkan watermark "API KEY REQUIRED".
+- Solusi 1 (container): hapus wrapper div `<div className="relative w-full h-full">`, ganti MapLibreView return jadi fragment dengan container langsung `className="absolute inset-0"` + inline style position:absolute/inset-0. Section (parent) sudah relative, jadi container absolute langsung mengisi section.
+- Solusi 2 (CSS global): tambah `.maplibregl-map { position: absolute !important; top/left/right/bottom: 0; width/height: 100% !important; }` untuk paksa tinggi penuh.
+- Solusi 3 (tile source): ganti OSM tiles → ESRI World Imagery (satelit realistis seperti Google Earth, free, CORS-enabled, no API key, no watermark) + CartoDB voyager_only_labels overlay untuk nama tempat.
+- Solusi 4 (layout): section `min-h-[420px] lg:min-h-[500px]` (sebelumnya `lg:min-h-0` bisa collapse).
+- Solusi 5 (resize): tambah `setTimeout(() => map.resize(), 100/500)` setelah load + ResizeObserver + `map.on('error')` logging.
+- Tingkatkan visibility layer: footprint-line width 1.8→3 opacity 1, trajectory-line width 2.2→3.5 color `#fde047` (bright yellow) opacity 1.
+- Verifikasi via agent-browser + VLM:
+  * Desktop: mapH=722, canvasH=722, footerAtBottom=true (839+60=900 viewport)
+  * Mobile 390x844: mapH=420, canvasH=420, footer ter-push natural (body 1070 > viewport 844)
+  * VLM konfirmasi: satellite imagery (green/brown land, dark ocean, Indonesia islands), NO watermark, magenta VAAC polygons + orange footprint + yellow trajectory + blue wind arrows + volcano markers semua terlihat
+  * Panel Wind & Weather: 6 level hPa, 275 wind arrows terender
+  * Layer API confirmed: 14 layers (satellite-base, labels-overlay, footprint-fill/line, trajectory-line, vaac-fill/line-0/1/2, admin-circles/labels, wind-arrows)
+
+Stage Summary:
+- Peta tidak terlihat karena container collapse (height 0) + tile watermark. Kedua masalah teratasi.
+- Peta sekarang pakai ESRI World Imagery (satelit realistis Google Earth style) + OSM labels overlay, tanpa watermark, CORS-enabled.
+- Container absolute inset-0 langsung di section relative, dengan CSS force height 100%.
+- Semua layer (VAAC, footprint, trajectory, wind, markers) terlihat di desktop & mobile.
+- Footer sticky di desktop, ter-push natural di mobile. Lint lulus, no console errors.

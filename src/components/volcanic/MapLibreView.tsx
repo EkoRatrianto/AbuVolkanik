@@ -95,27 +95,46 @@ export function MapLibreView({
       style: {
         version: 8,
         sources: {
-          'osm-tiles': {
+          // ESRI World Imagery: satelit realistis (seperti Google Earth),
+          // free, CORS-enabled, no API key, no watermark.
+          'esri-satellite': {
             type: 'raster',
             tiles: [
-              'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
             ],
             tileSize: 256,
             attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxzoom: 19,
+              'Imagery &copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics',
+            maxzoom: 18,
+          },
+          // OSM labels overlay untuk nama tempat
+          'osm-labels': {
+            type: 'raster',
+            tiles: [
+              'https://a.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
+              'https://b.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
+              'https://c.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
+            ],
+            tileSize: 256,
+            attribution: 'Labels &copy; OpenStreetMap, &copy; CARTO',
+            maxzoom: 20,
           },
         },
         layers: [
           {
-            id: 'osm-base',
+            id: 'satellite-base',
             type: 'raster',
-            source: 'osm-tiles',
+            source: 'esri-satellite',
             paint: {
-              'raster-saturation': -0.3,
-              'raster-contrast': 0.05,
+              'raster-opacity': 0.95,
+            },
+          },
+          {
+            id: 'labels-overlay',
+            type: 'raster',
+            source: 'osm-labels',
+            paint: {
+              'raster-opacity': 0.85,
             },
           },
         ],
@@ -124,14 +143,21 @@ export function MapLibreView({
       center: [117, -2],
       zoom: 4.4,
       minZoom: 3.5,
-      maxZoom: 12,
+      maxZoom: 14,
       attributionControl: { compact: true },
+    })
+
+    // Log error tile untuk debugging
+    map.on('error', (e: any) => {
+      console.error('[MapLibre] error:', e?.error?.message ?? e?.type ?? e)
     })
 
     map.on('load', () => {
       setMapReady(true)
-      // Expose map untuk debug/testing
       ;(window as any).__volcanicMap = map
+      // Pastikan canvas resize setelah style settle
+      setTimeout(() => map.resize(), 100)
+      setTimeout(() => map.resize(), 500)
     })
 
     // Handle container resize (mis. saat sheet/panel buka-tutup mengubah layout)
@@ -281,14 +307,14 @@ export function MapLibreView({
         source: 'footprint-src',
         paint: {
           'line-color': '#fb923c',
-          'line-width': 1.8,
-          'line-dasharray': [2, 1.5],
-          'line-opacity': 0.9,
+          'line-width': 3,
+          'line-dasharray': [3, 2],
+          'line-opacity': 1,
         },
       })
     }
 
-    // --- Trajectory screening (dashed amber) ---
+    // --- Trajectory screening (solid bright amber, tebal) ---
     if (showModelLayer && selectedGeometry.trajectories.length > 0) {
       const fc = {
         type: 'FeatureCollection',
@@ -304,10 +330,10 @@ export function MapLibreView({
         type: 'line',
         source: 'trajectory-src',
         paint: {
-          'line-color': '#fbbf24',
-          'line-width': 2.2,
-          'line-dasharray': [6, 4],
-          'line-opacity': 0.85,
+          'line-color': '#fde047',
+          'line-width': 3.5,
+          'line-dasharray': [5, 3],
+          'line-opacity': 1,
         },
       })
     }
@@ -455,13 +481,25 @@ export function MapLibreView({
   }, [selectedGeometry, showModelLayer, showWindLayer, showPrecipLayer, showVaacLayer, mapReady])
 
   return (
-    <div className="relative w-full h-full">
-      <div ref={containerRef} className="absolute inset-0" />
+    <>
+      <div
+        ref={containerRef}
+        className="absolute inset-0"
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+        }}
+      />
       {!mapReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0f1418] text-xs text-muted-foreground">
-          Memuat peta OpenStreetMap...
+          Memuat peta basemap satelit...
         </div>
       )}
-    </div>
+    </>
   )
 }

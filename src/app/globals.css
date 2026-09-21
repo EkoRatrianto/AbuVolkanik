@@ -183,3 +183,18 @@
 .maplibregl-ctrl-attrib-button {
   background-color: rgba(148, 163, 184, 0.3) !important;
 }
+
+/* PAKSA tinggi peta MapLibre — fix container collapse ke height 0 */
+.maplibregl-map,
+.maplibregl-map > .maplibregl-canvas-container,
+.maplibregl-map > .maplibregl-canvas-container > canvas.maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+.maplibregl-map {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}

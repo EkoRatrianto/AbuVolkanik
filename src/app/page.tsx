@@ -204,7 +204,7 @@ export default function Home() {
         </aside>
 
         {/* Map area */}
-        <section className="relative flex-1 min-h-[420px] lg:min-h-0 bg-[#0f1418]">
+        <section className="relative flex-1 min-h-[420px] lg:min-h-[500px] bg-[#0f1418]">
           <MapLibreView
             volcanoes={volcanoes}
             events={events}
