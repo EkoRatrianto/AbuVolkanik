@@ -104,11 +104,29 @@ export function UserGuideDialog({ open, onOpenChange }: UserGuideDialogProps) {
   const [activeTopic, setActiveTopic] = useState<GuideTopicId>('ringkasan')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Luasan layar responsif
-  const sizeClasses = {
-    standard: 'max-w-2xl max-h-[85vh] w-[95vw]',
-    wide: 'max-w-5xl max-h-[90vh] w-[95vw]',
-    fullscreen: 'max-w-[98vw] w-[98vw] h-[94vh] max-h-[94vh]',
+  // Konfigurasi ukuran luasan layar responsif & eksplisit
+  const SIZE_CONFIG = {
+    standard: {
+      className: 'sm:max-w-2xl max-w-2xl',
+      width: 'min(94vw, 700px)',
+      maxWidth: '700px',
+      height: '80vh',
+      maxHeight: '82vh',
+    },
+    wide: {
+      className: 'sm:max-w-5xl max-w-5xl',
+      width: 'min(95vw, 1150px)',
+      maxWidth: '1150px',
+      height: '88vh',
+      maxHeight: '88vh',
+    },
+    fullscreen: {
+      className: 'sm:max-w-[98vw] max-w-[98vw]',
+      width: '98vw',
+      maxWidth: '98vw',
+      height: '95vh',
+      maxHeight: '95vh',
+    },
   }
 
   // Filter topik jika pengguna mencari kata kunci
@@ -128,7 +146,13 @@ export function UserGuideDialog({ open, onOpenChange }: UserGuideDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={`${sizeClasses[sizeMode]} flex flex-col p-0 overflow-hidden transition-all duration-200 border-border bg-card shadow-2xl rounded-xl`}
+        className={`${SIZE_CONFIG[sizeMode].className} flex flex-col p-0 gap-0 overflow-hidden transition-all duration-200 border-border bg-card shadow-2xl rounded-xl`}
+        style={{
+          width: SIZE_CONFIG[sizeMode].width,
+          maxWidth: SIZE_CONFIG[sizeMode].maxWidth,
+          height: SIZE_CONFIG[sizeMode].height,
+          maxHeight: SIZE_CONFIG[sizeMode].maxHeight,
+        }}
       >
         {/* TOPBAR HEADER DIALOG */}
         <DialogHeader className="px-5 py-3 border-b border-border bg-card/90 backdrop-blur shrink-0 flex flex-row items-center justify-between gap-3">
@@ -157,39 +181,51 @@ export function UserGuideDialog({ open, onOpenChange }: UserGuideDialogProps) {
               Luas:
             </span>
             <Button
-              variant={sizeMode === 'standard' ? 'secondary' : 'ghost'}
+              variant="ghost"
               size="sm"
-              className={`h-6 text-xs px-2 ${sizeMode === 'standard' ? 'shadow-xs font-medium' : ''}`}
+              className={`h-7 text-xs px-2.5 rounded-md transition-all ${
+                sizeMode === 'standard'
+                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
               onClick={() => setSizeMode('standard')}
               title="Ukuran Standar"
             >
               Standar
             </Button>
             <Button
-              variant={sizeMode === 'wide' ? 'secondary' : 'ghost'}
+              variant="ghost"
               size="sm"
-              className={`h-6 text-xs px-2 ${sizeMode === 'wide' ? 'shadow-xs font-medium' : ''}`}
+              className={`h-7 text-xs px-2.5 rounded-md transition-all ${
+                sizeMode === 'wide'
+                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
               onClick={() => setSizeMode('wide')}
-              title="Ukuran Lebar (Rekomendasi Laptop)"
+              title="Ukuran Lebar"
             >
               Lebar
             </Button>
             <Button
-              variant={sizeMode === 'fullscreen' ? 'secondary' : 'ghost'}
+              variant="ghost"
               size="sm"
-              className={`h-6 text-xs px-2 gap-1 ${sizeMode === 'fullscreen' ? 'shadow-xs font-medium' : ''}`}
-              onClick={() => setSizeMode(sizeMode === 'fullscreen' ? 'wide' : 'fullscreen')}
-              title="Layar Penuh"
+              className={`h-7 text-xs px-2.5 rounded-md gap-1 transition-all ${
+                sizeMode === 'fullscreen'
+                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              onClick={() => setSizeMode((m) => (m === 'fullscreen' ? 'wide' : 'fullscreen'))}
+              title={sizeMode === 'fullscreen' ? 'Kecilkan' : 'Layar Penuh'}
             >
               {sizeMode === 'fullscreen' ? (
                 <>
-                  <Minimize2 className="h-3 w-3" />
-                  <span className="hidden md:inline">Kecilkan</span>
+                  <Minimize2 className="h-3.5 w-3.5 text-primary" />
+                  <span className="hidden sm:inline">Kecilkan</span>
                 </>
               ) : (
                 <>
-                  <Maximize2 className="h-3 w-3" />
-                  <span className="hidden md:inline">Penuh</span>
+                  <Maximize2 className="h-3.5 w-3.5 text-primary" />
+                  <span className="hidden sm:inline">Perbesar Penuh</span>
                 </>
               )}
             </Button>
