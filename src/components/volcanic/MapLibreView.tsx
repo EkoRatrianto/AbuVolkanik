@@ -180,17 +180,15 @@ export function MapLibreView({
               'Imagery &copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics',
             maxzoom: 18,
           },
-          // OSM labels overlay untuk nama tempat
-          'osm-labels': {
+          // ESRI Boundaries and Places Reference Labels — 100% Bebas Watermark, No API Key Required
+          'esri-labels': {
             type: 'raster',
             tiles: [
-              'https://a.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
-              'https://b.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
-              'https://c.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
+              'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
             ],
             tileSize: 256,
-            attribution: 'Labels &copy; OpenStreetMap, &copy; CARTO',
-            maxzoom: 20,
+            attribution: 'Labels &copy; Esri, HERE, Garmin',
+            maxzoom: 19,
           },
         },
         layers: [
@@ -205,7 +203,7 @@ export function MapLibreView({
           {
             id: 'labels-overlay',
             type: 'raster',
-            source: 'osm-labels',
+            source: 'esri-labels',
             paint: {
               'raster-opacity': 0.85,
             },

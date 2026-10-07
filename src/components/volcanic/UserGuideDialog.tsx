@@ -33,11 +33,13 @@ import {
   ChevronRight,
   Eye,
   Sparkles,
+  Database,
 } from 'lucide-react'
 
 interface UserGuideDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onOpenSources?: () => void
 }
 
 type GuideTopicId = 'ringkasan' | 'peta' | 'langkah' | 'keselamatan' | 'istilah' | 'faq'
@@ -98,7 +100,11 @@ const TOPICS: GuideTopic[] = [
   },
 ]
 
-export function UserGuideDialog({ open, onOpenChange }: UserGuideDialogProps) {
+export function UserGuideDialog({
+  open,
+  onOpenChange,
+  onOpenSources,
+}: UserGuideDialogProps) {
   // Mode luasan layar: standard, wide, fullscreen
   const [sizeMode, setSizeMode] = useState<'standard' | 'wide' | 'fullscreen'>('wide')
   const [activeTopic, setActiveTopic] = useState<GuideTopicId>('ringkasan')
@@ -433,6 +439,51 @@ export function UserGuideDialog({ open, onOpenChange }: UserGuideDialogProps) {
                       </div>
                       <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                     </a>
+                  </div>
+                </div>
+
+                {/* Ringkasan Deskriptif Jenis & Sumber Data */}
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                      <Database className="h-4 w-4" /> Jenis &amp; Sumber Data yang Digunakan
+                    </h4>
+                    {onOpenSources && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={onOpenSources}
+                        className="h-6 text-[11px] gap-1 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+                      >
+                        Buka Detail Spesifikasi Sumber <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-lg border border-border bg-card/60 space-y-1">
+                      <strong className="text-foreground">1. Laporan Letusan (VONA &amp; Magma):</strong>
+                      <p className="text-[11px] text-muted-foreground">
+                        Dari pos pengamatan fisik PVMBG Badan Geologi. Menyediakan tinggi semburan abu (m ASL) dan status Tingkat Aktivitas (Level I s.d. IV).
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-lg border border-border bg-card/60 space-y-1">
+                      <strong className="text-foreground">2. Angin Atmosfer (BMKG &amp; NOAA GFS):</strong>
+                      <p className="text-[11px] text-muted-foreground">
+                        Prakiraan kecepatan dan arah tiupan angin pada lapisan isobarik 1000 hingga 300 hPa untuk memetakan dinamika sebaran abu secara vertikal.
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-lg border border-border bg-card/60 space-y-1">
+                      <strong className="text-foreground">3. Koridor Pesawat (VAAC Darwin):</strong>
+                      <p className="text-[11px] text-muted-foreground">
+                        Poligon batas awan debu abu di ruang udara berdasarkan satelit Himawari-9 untuk keselamatan penerbangan internasional.
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-lg border border-border bg-card/60 space-y-1">
+                      <strong className="text-foreground">4. Model Komputer Dispersi (HYSPLIT):</strong>
+                      <p className="text-[11px] text-muted-foreground">
+                        Kalkulasi simulasi forward trajectory dan estimasi probabilitas perlintasan wilayah kabupaten/kota selama 12&ndash;24 jam.
+                      </p>
+                    </div>
                   </div>
                 </div>
 

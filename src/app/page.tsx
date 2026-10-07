@@ -10,6 +10,7 @@ import { MapLegend } from '@/components/volcanic/MapLegend'
 import { EventDetail, type EventDetailData } from '@/components/volcanic/EventDetail'
 import { DataHealth } from '@/components/volcanic/DataHealth'
 import { UserGuideDialog } from '@/components/volcanic/UserGuideDialog'
+import { DataSourceInfoDialog } from '@/components/volcanic/DataSourceInfoDialog'
 import { Footer } from '@/components/volcanic/Footer'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,6 +24,7 @@ import {
   ListFilter,
   Layers,
   BookOpen,
+  Database,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
@@ -34,6 +36,7 @@ export default function Home() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [healthOpen, setHealthOpen] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [sourcesOpen, setSourcesOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [filterColor, setFilterColor] = useState<AviationColor | 'ALL'>('ALL')
   const [showModelLayer, setShowModelLayer] = useState(true)
@@ -242,6 +245,7 @@ export default function Home() {
         activeEventCount={activeEventCount}
         lastUpdated={lastUpdated}
         onOpenGuide={() => setGuideOpen(true)}
+        onOpenSources={() => setSourcesOpen(true)}
       />
       <DisclaimerBanner />
 
@@ -407,8 +411,8 @@ export default function Home() {
             )}
           </div>
 
-          {/* TOMBOL PANDUAN CEPAT (FLOATING ACTION BUTTON) */}
-          <div className="absolute left-3 top-12 sm:top-14 z-10">
+          {/* TOMBOL PANDUAN & SUMBER DATA (FLOATING ACTION BUTTONS) */}
+          <div className="absolute left-3 top-12 sm:top-14 z-10 flex items-center gap-1.5 flex-wrap">
             <Button
               variant="secondary"
               size="sm"
@@ -419,6 +423,18 @@ export default function Home() {
               <BookOpen className="h-3.5 w-3.5" />
               <span className="hidden md:inline">Panduan Pengguna</span>
               <span className="md:hidden">Panduan</span>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSourcesOpen(true)}
+              className="h-7 text-xs px-2.5 gap-1.5 bg-card/90 backdrop-blur border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 shadow-md font-medium"
+              title="Informasi deskriptif lengkap terkait jenis dan sumber data"
+            >
+              <Database className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Sumber &amp; Jenis Data</span>
+              <span className="md:hidden">Sumber Data</span>
             </Button>
           </div>
 
@@ -539,9 +555,19 @@ export default function Home() {
       />
 
       {/* DIALOG PANDUAN PENGGUNAAN (Luasan Layar Fleksibel & Ramah Orang Awam) */}
-      <UserGuideDialog open={guideOpen} onOpenChange={setGuideOpen} />
+      <UserGuideDialog
+        open={guideOpen}
+        onOpenChange={setGuideOpen}
+        onOpenSources={() => setSourcesOpen(true)}
+      />
 
-      <Footer onOpenGuide={() => setGuideOpen(true)} />
+      {/* DIALOG INFORMASI DESKRIPTIF JENIS & SUMBER DATA */}
+      <DataSourceInfoDialog open={sourcesOpen} onOpenChange={setSourcesOpen} />
+
+      <Footer
+        onOpenGuide={() => setGuideOpen(true)}
+        onOpenSources={() => setSourcesOpen(true)}
+      />
     </div>
   )
 }

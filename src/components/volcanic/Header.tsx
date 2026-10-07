@@ -1,16 +1,18 @@
 'use client'
 
-import { Mountain, Activity, Radio, ShieldAlert, Clock, BookOpen } from 'lucide-react'
+import { Mountain, Activity, Radio, ShieldAlert, Clock, BookOpen, Database } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function Header({
   activeEventCount,
   lastUpdated,
   onOpenGuide,
+  onOpenSources,
 }: {
   activeEventCount: number
   lastUpdated: string
   onOpenGuide?: () => void
+  onOpenSources?: () => void
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -30,6 +32,21 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-2 md:gap-2.5 shrink-0">
+          {/* Tombol Informasi Jenis & Sumber Data */}
+          {onOpenSources && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenSources}
+              className="h-8 text-xs px-2.5 gap-1.5 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-medium shadow-xs"
+              title="Informasi Deskriptif Jenis dan Sumber Data yang Digunakan"
+            >
+              <Database className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Sumber &amp; Jenis Data</span>
+              <span className="md:hidden">Sumber Data</span>
+            </Button>
+          )}
+
           {/* Tombol Panduan Penggunaan untuk Orang Awam */}
           {onOpenGuide && (
             <Button

@@ -1,9 +1,15 @@
 'use client'
 
-import { ShieldAlert, ExternalLink, BookOpen } from 'lucide-react'
+import { ShieldAlert, ExternalLink, BookOpen, Database } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export function Footer({ onOpenGuide }: { onOpenGuide?: () => void }) {
+export function Footer({
+  onOpenGuide,
+  onOpenSources,
+}: {
+  onOpenGuide?: () => void
+  onOpenSources?: () => void
+}) {
   return (
     <footer className="mt-auto border-t border-border bg-card/95 backdrop-blur">
       <div className="px-4 py-3 md:px-6">
@@ -52,7 +58,17 @@ export function Footer({ onOpenGuide }: { onOpenGuide?: () => void }) {
               Keputusan resmi ada pada otoritas setempat.
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-3 text-[10px] text-muted-foreground">
+          <div className="flex shrink-0 items-center gap-2 text-[10px] text-muted-foreground">
+            {onOpenSources && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] text-emerald-400 hover:text-emerald-300 gap-1 px-2"
+                onClick={onOpenSources}
+              >
+                <Database className="h-3 w-3" /> Sumber &amp; Jenis Data
+              </Button>
+            )}
             {onOpenGuide && (
               <Button
                 variant="ghost"
