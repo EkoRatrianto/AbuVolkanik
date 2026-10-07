@@ -9,15 +9,31 @@ import { MapLibreView } from '@/components/volcanic/MapLibreView'
 import { MapLegend } from '@/components/volcanic/MapLegend'
 import { EventDetail, type EventDetailData } from '@/components/volcanic/EventDetail'
 import { DataHealth } from '@/components/volcanic/DataHealth'
+import { UserGuideDialog } from '@/components/volcanic/UserGuideDialog'
 import { Footer } from '@/components/volcanic/Footer'
 import { Button } from '@/components/ui/button'
-import { Activity, RefreshCw, Maximize2 } from 'lucide-react'
+import {
+  Activity,
+  RefreshCw,
+  Maximize2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  ListFilter,
+  Layers,
+  BookOpen,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
+} from 'lucide-react'
 import type { EventListItem, AviationColor, WindProfileData } from '@/components/volcanic/types'
 
 export default function Home() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [healthOpen, setHealthOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [filterColor, setFilterColor] = useState<AviationColor | 'ALL'>('ALL')
   const [showModelLayer, setShowModelLayer] = useState(true)
@@ -27,26 +43,46 @@ export default function Home() {
   const [showWindGrid, setShowWindGrid] = useState(true)
   const [windGridLevel, setWindGridLevel] = useState(850)
 
-  // Fetch volcanoes
-  const { data: volcanoesData } = useQuery({
+  // Status Workspace Kejadian: Open/Close & Up/Down
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(true)
+  const [workspaceHeightMode, setWorkspaceHeightMode] = useState<'collapsed' | 'normal' | 'expanded'>('normal')
+
+  // Status Legenda: Open/Close & Up/Down position
+  const [isLegendOpen, setIsLegendOpen] = useState(true)
+  const [legendPosition, setLegendPosition] = useState<'top' | 'bottom'>('top')
+
+  // Fetch volcanoes dengan deteksi error
+  const {
+    data: volcanoesData,
+    isError: isVolcanoesError,
+    refetch: refetchVolcanoes,
+  } = useQuery({
     queryKey: ['volcanoes'],
     queryFn: async () => {
       const r = await fetch('/api/volcanoes')
-      if (!r.ok) throw new Error('volcanoes failed')
+      if (!r.ok) throw new Error('Gagal memuat data gunung api')
       return r.json()
     },
     staleTime: 5 * 60 * 1000,
+    retry: 2,
   })
 
-  // Fetch events
-  const { data: eventsData, refetch: refetchEvents, isFetching: eventsFetching, dataUpdatedAt: eventsUpdatedAt } = useQuery({
+  // Fetch events dengan deteksi error
+  const {
+    data: eventsData,
+    refetch: refetchEvents,
+    isFetching: eventsFetching,
+    isError: isEventsError,
+    dataUpdatedAt: eventsUpdatedAt,
+  } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
       const r = await fetch('/api/events')
-      if (!r.ok) throw new Error('events failed')
+      if (!r.ok) throw new Error('Gagal memuat daftar kejadian')
       return r.json()
     },
     refetchInterval: 60 * 1000,
+    retry: 2,
   })
 
   // Waktu terakhir pembaruan events (UTC HH:MM)
@@ -64,6 +100,7 @@ export default function Home() {
       return r.json() as Promise<EventDetailData>
     },
     enabled: !!selectedEventId,
+    retry: 1,
   })
 
   const { data: windData } = useQuery({
@@ -75,6 +112,7 @@ export default function Home() {
       return r.json() as Promise<WindProfileData>
     },
     enabled: !!selectedEventId,
+    retry: 1,
   })
 
   // Fetch source health (lazy — saat panel dibuka)
@@ -90,7 +128,11 @@ export default function Home() {
   })
 
   // Fetch wind field grid untuk overlay panah angin di peta (default 850 hPa)
-  const { data: windFieldData } = useQuery({
+  const {
+    data: windFieldData,
+    isError: isWindFieldError,
+    refetch: refetchWindField,
+  } = useQuery({
     queryKey: ['wind-field', windGridLevel],
     queryFn: async () => {
       const r = await fetch(`/api/wind-field?level=${windGridLevel}`)
@@ -98,9 +140,10 @@ export default function Home() {
       return r.json()
     },
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   })
 
-  // Derived: detail & wind profile langsung dari query data (bukan state copy)
+  // Derived: detail & wind profile langsung dari query data
   const selectedDetail = detailData ?? null
   const windProfile = windData ?? null
   const windFieldCells = windFieldData?.cells ?? []
@@ -135,21 +178,24 @@ export default function Home() {
       validTo: t.validTo,
       verticalBand: t.verticalBand,
     }))
-    const vaacPolygons = (selectedDetail as any).vaacPolygons?.map((v: any) => ({
-      geometry: v.geometry,
-      flightLevel: v.flightLevel,
-      ashTopMAsl: v.ashTopMAsl,
-      movementText: v.movementText,
-      confidence: v.confidence,
-      observedAt: v.observedAt,
-    })) ?? []
-    const adminAreas = selectedDetail.potentialAreas.concat(selectedDetail.confirmedAreas).map((a) => ({
-      name: a.adminUnit.name,
-      lat: a.adminUnit.lat,
-      lng: a.adminUnit.lng,
-      ratio: a.ratio,
-      isConfirmed: a.isConfirmed,
-    }))
+    const vaacPolygons =
+      (selectedDetail as any).vaacPolygons?.map((v: any) => ({
+        geometry: v.geometry,
+        flightLevel: v.flightLevel,
+        ashTopMAsl: v.ashTopMAsl,
+        movementText: v.movementText,
+        confidence: v.confidence,
+        observedAt: v.observedAt,
+      })) ?? []
+    const adminAreas = selectedDetail.potentialAreas
+      .concat(selectedDetail.confirmedAreas)
+      .map((a) => ({
+        name: a.adminUnit.name,
+        lat: a.adminUnit.lat,
+        lng: a.adminUnit.lng,
+        ratio: a.ratio,
+        isConfirmed: a.isConfirmed,
+      }))
     const windLevels = windProfile?.levels ?? []
     return {
       polygons,
@@ -166,49 +212,136 @@ export default function Home() {
   const events = (eventsData?.events ?? []) as EventListItem[]
   const activeEventCount = events.length
 
+  // Deteksi status koneksi API umum
+  const hasApiError = isVolcanoesError || isEventsError || isWindFieldError
+  const apiStatusText = hasApiError
+    ? 'Terjadi kendala memuat sebagian data API'
+    : `API Terhubung: ${volcanoes.length} Gunung Api · ${events.length} Kejadian Erupsi`
+
+  // Kelas ketinggian workspace pada layar mobile/tablet
+  const mobileHeightClasses = {
+    collapsed: 'max-h-[46px] min-h-[46px]',
+    normal: 'max-h-[38vh] min-h-[160px]',
+    expanded: 'max-h-[75vh] min-h-[300px]',
+  }
+
+  // Toggle up/down ketinggian workspace
+  const handleToggleWorkspaceHeight = () => {
+    if (workspaceHeightMode === 'collapsed') {
+      setWorkspaceHeightMode('normal')
+    } else if (workspaceHeightMode === 'normal') {
+      setWorkspaceHeightMode('expanded')
+    } else {
+      setWorkspaceHeightMode('collapsed')
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <Header activeEventCount={activeEventCount} lastUpdated={lastUpdated} />
+      <Header
+        activeEventCount={activeEventCount}
+        lastUpdated={lastUpdated}
+        onOpenGuide={() => setGuideOpen(true)}
+      />
       <DisclaimerBanner />
 
-      <main className="flex flex-1 flex-col lg:flex-row min-h-0">
-        {/* Sidebar event list */}
-        <aside className="w-full lg:w-80 xl:w-96 shrink-0 border-r border-border bg-card/30 flex flex-col min-h-0 max-h-[40vh] lg:max-h-none">
-          <div className="flex items-center gap-2 border-b border-border p-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setHealthOpen(true)}
-            >
-              <Activity className="h-3.5 w-3.5 mr-1" /> Kesehatan Sumber
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs ml-auto"
-              onClick={() => refetchEvents()}
-              disabled={eventsFetching}
-            >
-              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${eventsFetching ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Muat ulang</span>
-            </Button>
-          </div>
-          <div className="flex-1 min-h-0">
-            <EventList
-              events={events}
-              selectedEventId={selectedEventId}
-              onSelectEvent={handleSelectEvent}
-              search={search}
-              onSearchChange={setSearch}
-              filterColor={filterColor}
-              onFilterColorChange={setFilterColor}
-            />
-          </div>
-        </aside>
+      <main className="flex flex-1 flex-col lg:flex-row min-h-0 relative overflow-hidden">
+        {/* SIDEBAR WORKSPACE KEJADIAN VULKANIK (Bisa Open/Close dan Up/Down) */}
+        {isWorkspaceOpen && (
+          <aside
+            className={`w-full lg:w-80 xl:w-96 shrink-0 border-r border-border bg-card/40 backdrop-blur flex flex-col min-h-0 z-20 transition-all duration-200 ${mobileHeightClasses[workspaceHeightMode]} lg:max-h-none`}
+          >
+            {/* Header Toolbar Workspace */}
+            <div className="flex items-center gap-1.5 border-b border-border p-2 bg-muted/20 shrink-0">
+              <div className="flex items-center gap-1.5 min-w-0 mr-auto">
+                <ListFilter className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-xs font-semibold truncate">Kejadian Vulkanik</span>
+                <span className="rounded-full bg-primary/20 text-primary text-[10px] px-1.5 py-0.2 font-mono">
+                  {events.length}
+                </span>
+              </div>
 
-        {/* Map area */}
-        <section className="relative flex-1 min-h-[420px] lg:min-h-[500px] bg-[#0f1418]">
+              {/* Kontrol Ketinggian Up/Down di layar mobile/tablet */}
+              <div className="flex lg:hidden items-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={handleToggleWorkspaceHeight}
+                  title={
+                    workspaceHeightMode === 'expanded'
+                      ? 'Turunkan panel (Down)'
+                      : 'Naikkan panel (Up)'
+                  }
+                >
+                  {workspaceHeightMode === 'expanded' ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2"
+                onClick={() => setHealthOpen(true)}
+                title="Periksa kesehatan koneksi sumber data"
+              >
+                <Activity className="h-3.5 w-3.5 mr-1 text-emerald-400" />
+                <span className="hidden sm:inline">Sumber</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs px-2"
+                onClick={() => {
+                  refetchEvents()
+                  refetchVolcanoes()
+                }}
+                disabled={eventsFetching}
+                title="Muat ulang data letusan"
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 mr-1 ${eventsFetching ? 'animate-spin' : ''}`}
+                />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+
+              {/* Tombol Tutup Workspace (Close) */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+                onClick={() => setIsWorkspaceOpen(false)}
+                title="Tutup Workspace Kejadian (Perluas Peta)"
+              >
+                <ChevronLeft className="h-4 w-4 hidden lg:block" />
+                <ChevronUp className="h-4 w-4 lg:hidden" />
+              </Button>
+            </div>
+
+            {/* List Kejadian (bila tidak di-minimize ke mode collapsed) */}
+            {workspaceHeightMode !== 'collapsed' && (
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <EventList
+                  events={events}
+                  selectedEventId={selectedEventId}
+                  onSelectEvent={handleSelectEvent}
+                  search={search}
+                  onSearchChange={setSearch}
+                  filterColor={filterColor}
+                  onFilterColorChange={setFilterColor}
+                />
+              </div>
+            )}
+          </aside>
+        )}
+
+        {/* MAP AREA */}
+        <section className="relative flex-1 min-h-[420px] lg:min-h-[500px] bg-[#0f1418] flex flex-col overflow-hidden">
           <MapLibreView
             volcanoes={volcanoes}
             events={events}
@@ -223,8 +356,78 @@ export default function Home() {
             windFieldCells={windFieldCells}
           />
 
-          {/* Legend overlay */}
-          <div className="absolute right-3 top-3 w-60 max-w-[calc(100%-1.5rem)]">
+          {/* TOMBOL BUKA WORKSPACE (Jika Workspace Ditutup) */}
+          {!isWorkspaceOpen && (
+            <div className="absolute left-3 top-3 z-20 animate-in fade-in slide-in-from-left duration-200">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsWorkspaceOpen(true)}
+                className="h-8 gap-1.5 shadow-lg border border-border bg-card/95 backdrop-blur text-xs font-medium hover:bg-card text-foreground"
+                title="Buka kembali daftar kejadian letusan"
+              >
+                <ListFilter className="h-3.5 w-3.5 text-primary" />
+                <span>Kejadian Vulkanik</span>
+                <span className="rounded-full bg-primary/20 text-primary text-[10px] px-1.5 py-0.2 font-mono">
+                  {events.length}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 ml-0.5 text-muted-foreground" />
+              </Button>
+            </div>
+          )}
+
+          {/* STATUS INDIKATOR KESEHATAN API DI SUDUT ATAS PETA */}
+          <div
+            className={`absolute ${
+              !isWorkspaceOpen ? 'left-48' : 'left-3'
+            } top-3 z-10 hidden sm:flex items-center gap-2 transition-all`}
+          >
+            {hasApiError ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-destructive/20 border border-destructive/40 backdrop-blur text-xs text-red-200 shadow-md">
+                <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                <span>Kendala sinkronisasi API</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-5 text-[10px] px-1.5 ml-1 border-destructive/40 text-red-200 hover:bg-destructive/30"
+                  onClick={() => {
+                    refetchEvents()
+                    refetchVolcanoes()
+                    refetchWindField()
+                  }}
+                >
+                  Coba Lagi
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-card/85 border border-border/80 backdrop-blur text-[11px] text-muted-foreground shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
+                <span className="font-mono text-[10px]">{apiStatusText}</span>
+              </div>
+            )}
+          </div>
+
+          {/* TOMBOL PANDUAN CEPAT (FLOATING ACTION BUTTON) */}
+          <div className="absolute left-3 top-12 sm:top-14 z-10">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setGuideOpen(true)}
+              className="h-7 text-xs px-2.5 gap-1.5 bg-card/90 backdrop-blur border border-primary/40 text-primary hover:bg-primary/10 shadow-md font-medium"
+              title="Buka panduan membaca peta dan simbol untuk orang awam"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Panduan Pengguna</span>
+              <span className="md:hidden">Panduan</span>
+            </Button>
+          </div>
+
+          {/* LEGENDA & LAYER OVERLAY (Dukungan Open/Close dan Posisi Up/Down) */}
+          <div
+            className={`absolute z-20 w-60 max-w-[calc(100%-1.5rem)] transition-all duration-200 ${
+              legendPosition === 'top' ? 'top-3 right-3' : 'bottom-3 right-3'
+            }`}
+          >
             <MapLegend
               showModelLayer={showModelLayer}
               showWindLayer={showWindLayer}
@@ -238,14 +441,23 @@ export default function Home() {
               onToggleVaac={() => setShowVaacLayer((v) => !v)}
               onToggleWindGrid={() => setShowWindGrid((v) => !v)}
               onChangeWindGridLevel={setWindGridLevel}
+              isOpen={isLegendOpen}
+              onToggleOpen={() => setIsLegendOpen((o) => !o)}
+              position={legendPosition}
+              onTogglePosition={() => setLegendPosition((p) => (p === 'top' ? 'bottom' : 'top'))}
+              onOpenGuide={() => setGuideOpen(true)}
             />
           </div>
 
-          {/* Selected event quick info (bottom-left) */}
+          {/* KOTAK INFO CEPAT KEJADIAN TERPILIH (Pojok Kiri Bawah) */}
           {selectedListItem && (
-            <div className="absolute left-3 bottom-3 max-w-[calc(100%-1.5rem)] sm:max-w-md rounded-lg border border-border bg-card/95 backdrop-blur p-3 shadow-lg">
+            <div className="absolute left-3 bottom-3 z-10 max-w-[calc(100%-1.5rem)] sm:max-w-md rounded-lg border border-border bg-card/95 backdrop-blur p-3 shadow-lg">
               <div className="flex items-center gap-2 mb-1">
-                <span className={`h-2 w-2 rounded-full ${aviationDot(selectedListItem.aviationColor)}`} />
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${aviationDot(
+                    selectedListItem.aviationColor
+                  )}`}
+                />
                 <span className="text-sm font-semibold">{selectedListItem.volcano.name}</span>
                 <span className="rounded border border-border bg-muted/40 px-1 py-0.5 text-[9px] font-mono text-muted-foreground">
                   {selectedListItem.volcano.code}
@@ -266,28 +478,49 @@ export default function Home() {
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
                   {selectedListItem.latestObservation.ashTopMAsl != null && (
                     <span className="rounded bg-muted/60 px-1 py-0.5 font-mono">
-                      kolom ~{selectedListItem.latestObservation.ashTopMAsl.toLocaleString('id-ID')} m ASL
+                      kolom ~
+                      {selectedListItem.latestObservation.ashTopMAsl.toLocaleString('id-ID')} m ASL
                     </span>
                   )}
                   {selectedListItem.latestObservation.movementText && (
-                    <span className="rounded bg-muted/60 px-1 py-0.5">gerak: {selectedListItem.latestObservation.movementText}</span>
+                    <span className="rounded bg-muted/60 px-1 py-0.5">
+                      gerak: {selectedListItem.latestObservation.movementText}
+                    </span>
                   )}
                 </div>
               )}
             </div>
           )}
 
-          {/* Empty state hint */}
+          {/* PESAN JIKA DATA BELUM SIAP */}
           {events.length === 0 && !eventsFetching && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="rounded-lg border border-border bg-card/80 p-4 text-center text-xs text-muted-foreground max-w-xs">
-                Memuat data kejadian. Catatan: daftar kosong ≠ tidak ada letusan.
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="rounded-lg border border-border bg-card/90 backdrop-blur p-4 text-center text-xs text-muted-foreground max-w-xs shadow-md">
+                {hasApiError ? (
+                  <div className="space-y-2 pointer-events-auto">
+                    <p className="text-amber-300 font-medium">Gagal menghubungkan ke data server</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        refetchEvents()
+                        refetchVolcanoes()
+                      }}
+                    >
+                      Muat Ulang Sekarang
+                    </Button>
+                  </div>
+                ) : (
+                  <p>Memuat data kejadian. Catatan: daftar kosong &ne; tidak ada letusan.</p>
+                )}
               </div>
             </div>
           )}
         </section>
       </main>
 
+      {/* MODAL / SHEET DETAIL KEJADIAN */}
       <EventDetail
         open={detailOpen}
         onOpenChange={setDetailOpen}
@@ -297,6 +530,7 @@ export default function Home() {
         windProfile={windProfile}
       />
 
+      {/* MODAL KESEHATAN SUMBER */}
       <DataHealth
         open={healthOpen}
         onOpenChange={setHealthOpen}
@@ -304,7 +538,10 @@ export default function Home() {
         loading={healthLoading}
       />
 
-      <Footer />
+      {/* DIALOG PANDUAN PENGGUNAAN (Luasan Layar Fleksibel & Ramah Orang Awam) */}
+      <UserGuideDialog open={guideOpen} onOpenChange={setGuideOpen} />
+
+      <Footer onOpenGuide={() => setGuideOpen(true)} />
     </div>
   )
 }

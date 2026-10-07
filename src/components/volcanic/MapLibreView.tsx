@@ -116,23 +116,28 @@ function makeArrowFeature(cell: {
 
 // Hatching pattern untuk footprint model (orange arsir)
 function makeHatchPattern(map: MaplibreMapType) {
-  if (map.getLayer('footprint-hatch')) return
-  const size = 8
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = 'rgba(251, 146, 60, 0.10)'
-  ctx.fillRect(0, 0, size, size)
-  ctx.strokeStyle = 'rgba(251, 146, 60, 0.85)'
-  ctx.lineWidth = 1.4
-  ctx.beginPath()
-  ctx.moveTo(0, size)
-  ctx.lineTo(size, 0)
-  ctx.stroke()
-  const img = ctx.getImageData(0, 0, size, size)
-  if (!map.hasImage('hatch-orange')) {
-    map.addImage('hatch-orange', img as any, { sdf: false })
+  try {
+    if (!map || map.hasImage('hatch-orange')) return
+    const size = 8
+    const canvas = document.createElement('canvas')
+    canvas.width = size
+    canvas.height = size
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.fillStyle = 'rgba(251, 146, 60, 0.10)'
+    ctx.fillRect(0, 0, size, size)
+    ctx.strokeStyle = 'rgba(251, 146, 60, 0.85)'
+    ctx.lineWidth = 1.4
+    ctx.beginPath()
+    ctx.moveTo(0, size)
+    ctx.lineTo(size, 0)
+    ctx.stroke()
+    const img = ctx.getImageData(0, 0, size, size)
+    if (!map.hasImage('hatch-orange')) {
+      map.addImage('hatch-orange', img as any, { sdf: false })
+    }
+  } catch (err) {
+    console.warn('[MapLibre] hatch pattern fallback:', err)
   }
 }
 
@@ -215,9 +220,19 @@ export function MapLibreView({
       attributionControl: { compact: true },
     })
 
-    // Log error tile untuk debugging
+    // Filter error tile non-kritis agar tidak memicu indikasi error di console/tampilan
     map.on('error', (e: any) => {
-      console.error('[MapLibre] error:', e?.error?.message ?? e?.type ?? e)
+      const msg = e?.error?.message ?? e?.type ?? String(e)
+      if (
+        msg.includes('404') ||
+        msg.includes('canceled') ||
+        msg.includes('aborted') ||
+        msg.includes('Failed to fetch') ||
+        msg.includes('status of 404')
+      ) {
+        return
+      }
+      console.warn('[MapLibre] warning:', msg)
     })
 
     map.on('load', () => {
@@ -390,7 +405,8 @@ export function MapLibreView({
         type: 'fill',
         source: 'footprint-src',
         paint: {
-          'fill-pattern': 'hatch-orange',
+          'fill-color': 'rgba(251, 146, 60, 0.22)',
+          ...(map.hasImage('hatch-orange') ? { 'fill-pattern': 'hatch-orange' } : {}),
         },
       })
       map.addLayer({
@@ -485,22 +501,26 @@ export function MapLibreView({
           'circle-stroke-width': 1.5,
         },
       })
-      map.addLayer({
-        id: 'admin-labels',
-        type: 'symbol',
-        source: 'admin-src',
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-size': 10,
-          'text-offset': [0, 1.4],
-          'text-anchor': 'top',
-        },
-        paint: {
-          'text-color': '#e2e8f0',
-          'text-halo-color': '#0f1418',
-          'text-halo-width': 1.5,
-        },
-      })
+      try {
+        map.addLayer({
+          id: 'admin-labels',
+          type: 'symbol',
+          source: 'admin-src',
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': 10,
+            'text-offset': [0, 1.4],
+            'text-anchor': 'top',
+          },
+          paint: {
+            'text-color': '#e2e8f0',
+            'text-halo-color': '#0f1418',
+            'text-halo-width': 1.5,
+          },
+        })
+      } catch (err) {
+        console.warn('[MapLibre] admin-labels warning:', err)
+      }
     }
 
     // --- Wind arrows at multiple levels near volcano ---

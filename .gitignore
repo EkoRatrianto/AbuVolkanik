@@ -61,4 +61,5 @@ db/*.db-journal
 worklog.md
 
 # tool-results temp
-tool-results/
+tool-results/prisma/*.db
+prisma/*.db-journal

@@ -1,13 +1,16 @@
 'use client'
 
-import { Mountain, Activity, Radio, ShieldAlert, Clock } from 'lucide-react'
+import { Mountain, Activity, Radio, ShieldAlert, Clock, BookOpen } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function Header({
   activeEventCount,
   lastUpdated,
+  onOpenGuide,
 }: {
   activeEventCount: number
   lastUpdated: string
+  onOpenGuide?: () => void
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -26,22 +29,40 @@ export function Header({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        <div className="flex items-center gap-2 md:gap-2.5 shrink-0">
+          {/* Tombol Panduan Penggunaan untuk Orang Awam */}
+          {onOpenGuide && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenGuide}
+              className="h-8 text-xs px-2.5 gap-1.5 border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary font-medium shadow-xs"
+              title="Buka Panduan Penggunaan Aplikasi (Bahasa Sederhana)"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Panduan Pengguna</span>
+              <span className="sm:hidden">Panduan</span>
+            </Button>
+          )}
+
           <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1">
             <Activity className="h-3.5 w-3.5 text-orange-400" />
             <span className="text-xs font-medium">{activeEventCount} kejadian aktif</span>
           </div>
-          <div className="hidden md:flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1">
+
+          <div className="hidden xl:flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1">
             <Radio className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="text-xs text-muted-foreground">Sumber: PVMBG · BMKG · VAAC · NOAA</span>
+            <span className="text-xs text-muted-foreground">Sumber: PVMBG · BMKG · VAAC</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1">
+
+          <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1">
             <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground font-mono">{lastUpdated}</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1">
+
+          <div className="hidden md:flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1">
             <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
-            <span className="text-xs font-medium text-amber-300 hidden sm:inline">Indikasi Model</span>
+            <span className="text-xs font-medium text-amber-300">Indikasi Model</span>
           </div>
         </div>
       </div>
