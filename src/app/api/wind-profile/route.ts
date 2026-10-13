@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'eventId wajib' }, { status: 400 })
     }
 
-    const event = await db.eruptionEvent.findUnique({
+    let event = await db.eruptionEvent.findUnique({
       where: { id: eventId },
       include: {
         volcano: true,
@@ -25,6 +25,25 @@ export async function GET(request: Request) {
         },
       },
     })
+
+    if (!event) {
+      const prefix = eventId.split('-')[0]
+      event = await db.eruptionEvent.findFirst({
+        where: {
+          OR: [
+            { volcano: { code: prefix } },
+            { id: { contains: eventId } },
+          ],
+        },
+        include: {
+          volcano: true,
+          modelRuns: {
+            orderBy: { startedAt: 'desc' },
+            take: 1,
+          },
+        },
+      })
+    }
 
     if (!event) {
       return NextResponse.json({ error: 'Kejadian tidak ditemukan' }, { status: 404 })

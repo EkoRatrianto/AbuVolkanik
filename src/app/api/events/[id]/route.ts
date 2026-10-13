@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const event = await db.eruptionEvent.findUnique({
+    let event = await db.eruptionEvent.findUnique({
       where: { id },
       include: {
         volcano: true,
@@ -36,6 +36,42 @@ export async function GET(
         },
       },
     })
+
+    if (!event) {
+      // Coba cari berdasarkan kode gunung jika id bertipe seperti SEM-20260920-001
+      const prefix = id.split('-')[0]
+      event = await db.eruptionEvent.findFirst({
+        where: {
+          OR: [
+            { volcano: { code: prefix } },
+            { id: { contains: id } },
+          ],
+        },
+        include: {
+          volcano: true,
+          documents: {
+            orderBy: { issuedAt: 'asc' },
+          },
+          observations: {
+            orderBy: { observedAt: 'asc' },
+          },
+          modelRuns: {
+            orderBy: { startedAt: 'asc' },
+            include: {
+              footprints: {
+                include: {
+                  exposures: {
+                    include: {
+                      adminUnit: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      })
+    }
 
     if (!event) {
       return NextResponse.json({ error: 'Kejadian tidak ditemukan' }, { status: 404 })
