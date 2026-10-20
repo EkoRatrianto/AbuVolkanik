@@ -1,0 +1,9 @@
+services:
+  abuvolkanik:
+    build: .
+    container_name: abuvolkanik
+    restart: always
+    ports:
+      - "8091:80"
+    env_file:
+      - .env
